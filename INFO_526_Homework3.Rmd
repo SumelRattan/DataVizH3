@@ -1,0 +1,388 @@
+---
+title: "Homework3"
+author: "Sumel Rattan"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+library(dplyr)
+
+raw_data <- read.csv("D:\\UA\\Study Materials & Notes\\Data Visualization\\Homeworks\\Homework3\\HW3_data\\HW3_data\\income.csv")
+
+head(raw_data)
+
+raw_data
+
+glimpse(raw_data)
+```
+
+```{r}
+install.packages("jpeg")
+install.packages("grid")
+
+```
+
+
+```{r}
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(jpeg)
+library(grid)
+
+# Clean and reshape the data
+data <- data.frame(
+  Class = c("$100-200", "$200-300", "$300-400", "$400-500", 
+            "$500-750", "$750-1000", "$1000 AND OVER"),
+  Average_Income = c(139.10, 249.45, 335.66, 433.82, 547.00, 880.00, 1125.00),
+  Rent = c(19, 22, 23, 18, 13, 0, 0),
+  Food = c(43, 47, 43, 37, 31, 37, 29),
+  Clothes = c(28, 23, 18, 15, 17, 19, 16),
+  Tax = c(0.9, 4.0, 11.5, 5.5, 5.0, 8.0, 4.5),
+  Other = c(9.9, 4.0, 11.5, 24.5, 34.0, 36.0, 50.5)
+)
+
+# Create the plot
+ggplot(data, aes(y = reorder(Class, Average_Income))) +
+  # Add background image
+  annotation_custom(
+    grid::rasterGrob(jpeg::readJPEG("D:\\UA\\Study Materials & Notes\\Data Visualization\\Homeworks\\Homework3\\DataVizH3\\images\\paper-3653357_1280.jpg"),
+                     width = unit(1, "npc"),
+                     height = unit(1, "npc")),
+    -Inf, Inf, -Inf, Inf) +
+  # Add bars
+  geom_col(aes(x = Rent), fill = "black", position = "stack") +
+  geom_col(aes(x = Food), fill = "#9B8EBA", position = position_stack(vjust = 0)) +
+  geom_col(aes(x = Clothes), fill = "#E8A5A5", position = position_stack(vjust = 0)) +
+  geom_col(aes(x = Tax), fill = "#CCCCCC", position = position_stack(vjust = 0)) +
+  geom_col(aes(x = Other), fill = "white", position = position_stack(vjust = 0)) +
+  # Add percentage labels
+  geom_text(aes(x = Rent/2, label = paste0(Rent, "%")), 
+            color = "white", size = 3) +
+  geom_text(aes(x = Rent + Food/2, label = paste0(Food, "%")), 
+            color = "black", size = 3) +
+  geom_text(aes(x = Rent + Food + Clothes/2, label = paste0(Clothes, "%")), 
+            color = "black", size = 3) +
+  geom_text(aes(x = Rent + Food + Clothes + Tax/2, label = paste0(Tax, "%")), 
+            color = "black", size = 3) +
+  geom_text(aes(x = Rent + Food + Clothes + Tax + Other/2, label = paste0(Other, "%")), 
+            color = "black", size = 3) +
+  # Customize theme
+  theme_minimal() +
+  theme(
+    plot.background = element_rect(fill = "antiquewhite", color = NA),
+    panel.grid = element_blank(),
+    axis.text.y = element_text(size = 10, face = "bold"),
+    axis.title = element_blank(),
+    axis.text.x = element_blank()
+  ) +
+  # Set plot limits and expand
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 100)) +
+  coord_cartesian(clip = "off")
+
+# Save the plot
+ggsave("atlanta_expenditure.png", width = 12, height = 8, dpi = 300)
+```
+
+### Question 2
+
+Based on the plot, it seems like, most of the people who did not take the vaccine have neutral stance to all the questions. This shows that their opinions have no clear direction whether it would be safe for them to take the COVID vaccine. 
+Out of all the races, Native Hawaiian/Other Pacific Islander and Asian groups strongly agree to recommend the vaccine to their families, friends and community members. This shows us that people from these races have most awareness about the vaccines and are willing to contribute spreading this awareness to their communitites. 
+People who had flu vaccine this year are more concerned about the safety and side effects of the vaccine than the ones who didn't have the flu vaccines. 
+
+### Question 3
+
+```{r}
+# Loading the datasets 
+raw_survey <- read.csv("D:\\UA\\Study Materials & Notes\\Data Visualization\\Homeworks\\Homework3\\HW3_data\\HW3_data\\covid-survey.csv")
+
+head(raw_survey)
+
+```
+Cleary in our first row, we have unnecessary rows, so we have to skip them
+
+```{r}
+raw_survey <- read.csv("D:\\UA\\Study Materials & Notes\\Data Visualization\\Homeworks\\Homework3\\HW3_data\\HW3_data\\covid-survey.csv", skip = 1)
+
+head(raw_survey)
+
+dim(raw_survey)
+
+```
+Now we will remove all the rows, where all values aside from 'response_id' are missing.
+
+```{r}
+library(dplyr)
+
+cleaned_survey <- raw_survey %>%
+  filter(if_all(-response_id, ~ !is.na(.)))
+
+dim(cleaned_survey)
+
+```
+Now we will relabel the survey response values. 
+
+```{r}
+library(dplyr)
+
+cleaned_survey <- cleaned_survey %>%
+  mutate(
+    exp_already_vax = recode(exp_already_vax, '0' = "No", '1' = "Yes"),
+    exp_flu_vax = recode(exp_flu_vax, '0' = "No", '1' = "Yes"),
+    exp_profession = recode(exp_profession, '0' = "Medica", '1' = "Nursing"),
+    exp_gender = recode(exp_gender, '0' = "Male", '1' = "Female", '3' = "Non-binary third gender", '4' = "Prefer not to say"), 
+    exp_race = recode(exp_race, '1' = "American Indian / Alaskan Native", '2' = "Asian", '3' = "Black / African American", '4' = "Native Hawaiian / Other Pacific Islander", '5' = "White"),
+    exp_ethnicity = recode(exp_ethnicity, '1' = "Hispanic / Latino", '2' = "Non-Hispanic / Non-Latino"), 
+    exp_age_bin = recode(exp_age_bin, '0' = "<20", '20' = "21-25", '25' = "26-30", '30' = ">30")
+  )
+
+cleaned_survey <- cleaned_survey %>% drop_na()
+
+head(cleaned_survey)
+
+```
+Pivoting the dataset longer, using the code provided in the 'homework.pdf'
+
+```{r}
+library(tidyr)
+
+covid_survey_longer <- cleaned_survey |> 
+  pivot_longer( 
+    cols = starts_with("exp_"), 
+    names_to = "explanatory", 
+    values_to = "explanatory_value" ) |> filter(!is.na(explanatory_value)) |> 
+  pivot_longer( 
+    cols = starts_with("resp_"), 
+    names_to = "response", 
+    values_to = "response_value" 
+  )
+
+print(covid_survey_longer)
+```
+
+Grouping the data by explanatory, explanatory_value, and response.
+
+```{r}
+# Group the data and calculate the summary statistics
+covid_survey_summary_stats_by_group <- covid_survey_longer %>%
+  group_by(explanatory, explanatory_value, response) %>%
+  summarize(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, 0.1, na.rm = TRUE),
+    high = quantile(response_value, 0.9, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+covid_survey_summary_stats_by_group
+
+```
+Grouping the data again, by response, in order to calculate same summary statistics for each response variable
+
+```{r}
+# Group the data by response only and calculate summary statistics
+covid_survey_summary_stats_all <- covid_survey_longer %>%
+  group_by(response) %>%
+  summarize(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, 0.1, na.rm = TRUE),
+    high = quantile(response_value, 0.9, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Print the resulting data frame
+covid_survey_summary_stats_all
+
+```
+Binding the two data frames now: 
+
+```{r}
+# Combine the two summary statistics data frames by row
+covid_survey_summary_stats <- bind_rows(covid_survey_summary_stats_all, covid_survey_summary_stats_by_group)
+
+covid_survey_summary_stats <- covid_survey_summary_stats %>%
+  mutate(explanatory = replace_na(explanatory, "ALL"),
+         explanatory_value = replace_na(explanatory_value, ""))
+
+# Print the resulting data frame
+covid_survey_summary_stats
+
+```
+```{r}
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(forcats)
+
+# Create a labeled data frame for custom labeling
+label_data <- list(
+  response = c(
+    resp_safety = "Based on my understanding, I believe the vaccine is safe",
+    resp_feel_safe_at_work = "Getting the vaccine will make me feel safer at work",
+    resp_concern_safety = "I am concerned about the safety and side effects of the vaccine",
+    resp_confidence_science = "I am confident in the scientific vetting process for the new COVID vaccines",
+    resp_trust_info = "I trust the information that I have received about the vaccines",
+    resp_will_recommend = "I will recommend the vaccine to family, friends, and community members"
+  ),
+  explanatory = c(
+    exp_age_bin = "Age",
+    exp_gender = "Gender",
+    exp_race = "Race",
+    exp_ethnicity = "Ethnicity",
+    exp_profession = "Profession",
+    exp_already_vax = "Had COVID\nvaccine",
+    exp_flu_vax = "Had flu\nvaccine this\nyear"
+  )
+)
+
+# Assuming your data frame has these columns: explanatory, explanatory_value, response, mean, low, high
+# Modify the plot
+ggplot(covid_survey_summary_stats, aes(x = mean, y = fct_rev(explanatory_value))) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(xmin = low, xmax = high), width = 0.2) +
+  facet_grid(explanatory ~ response) +
+  scale_x_continuous(
+    limits = c(1, 5),
+    breaks = seq(1, 5, 1)
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major.x = element_line(color = "gray90"),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    strip.background = element_rect(fill = "gray95"),
+    strip.text = element_text(size = 8),
+    strip.text.y = element_text(angle = 0),
+    axis.text.y = element_text(size = 8),
+    axis.title.x = element_text(size = 10),
+    plot.title = element_text(size = 12)
+  ) +
+  labs(
+    x = "Mean Likert score\n(Error bars range from 10th to 90th percentile)",
+    y = NULL,
+    title = "Survey Response Analysis by Explanatory Variable"
+  )
+
+```
+### Question 4
+
+```{r}
+
+# Assuming we have already loaded libraries and defined label_data from previous code
+
+# Since we're using the summary statistics directly, we'll just plot using the existing data
+# but change the interpretation of 'low' and 'high' to represent quartiles instead of percentiles
+ggplot(covid_survey_summary_stats, aes(x = mean, y = fct_rev(explanatory_value))) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(xmin = low, xmax = high), width = 0.2) +  # Using existing low/high columns
+  facet_grid(explanatory ~ response) +
+  scale_x_continuous(
+    limits = c(1, 5),
+    breaks = seq(1, 5, 1)
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major.x = element_line(color = "gray90"),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    strip.background = element_rect(fill = "gray95"),
+    strip.text = element_text(size = 8),
+    strip.text.y = element_text(angle = 0),
+    axis.text.y = element_text(size = 8),
+    axis.title.x = element_text(size = 10),
+    plot.title = element_text(size = 12)
+  ) +
+  labs(
+    x = "Mean Likert score\n(Error bars range from 25th to 75th percentile)",
+    y = NULL,
+    title = "Survey Response Analysis by Explanatory Variable (Interquartile Range)"
+  )
+
+```
+
+The key differences we would expect to see between 10-90th percentile error bars and interquartile range (25-75th percentile) error bars:
+
+The error bars would be shorter in the quartile version since they span a smaller range (50% vs 80% of the data)
+The quartile version might make it easier to identify the central tendency of responses
+Extreme responses would have less influence on the error bars in the quartile version
+
+
+### Question 5
+
+```{r}
+library(tidyverse)
+library(patchwork)
+
+# First, calculate percentages for each response category
+covid_survey_summary_stats <- df %>%
+  group_by(response) %>%
+  count(response_value) %>%
+  group_by(response) %>%
+  mutate(
+    percentage = n / sum(n) * 100,
+    # Center the values around 0 for diverging chart
+    centered_percentage = case_when(
+      response_value <= 2 ~ -percentage,
+      response_value == 3 ~ percentage/2,
+      response_value >= 4 ~ percentage
+    )
+  ) %>%
+  ungroup()
+
+# Create the diverging bar chart
+diverging_chart <- ggplot(covid_survey_summary_stats, 
+       aes(y = fct_rev(response), 
+           x = centered_percentage,
+           fill = factor(response_value))) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(
+    values = c("#ca0020", "#f4a582", "#f7f7f7", "#92c5de", "#0571b0"),
+    name = "Response",
+    labels = c("Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree")
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title.y = element_blank(),
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank(),
+    axis.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Survey Responses Distribution (Diverging)",
+    x = "Percentage of Responses",
+    alt = "A diverging bar chart showing the distribution of Likert scale responses across six COVID vaccine-related questions"
+  )
+
+# Create the 100% stacked bar chart
+hundred_percent_chart <- ggplot(covid_survey_summary_stats, 
+       aes(y = fct_rev(response), 
+           x = percentage,
+           fill = factor(response_value))) +
+  geom_bar(stat = "identity", position = "fill") +
+  scale_fill_manual(
+    values = c("#ca0020", "#f4a582", "#f7f7f7", "#92c5de", "#0571b0"),
+    name = "Response",
+    labels = c("Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree")
+  ) +
+  scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
+  theme(
+    axis.title.y = element_blank(),
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank(),
+    axis.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Survey Responses Distribution (100% Stacked)",
+    x = "Percentage of Responses",
+    alt = "A 100% stacked bar chart displaying the relative proportions of Likert scale responses"
+  )
+
+# Combine the plots using patchwork
+diverging_chart / hundred_percent_chart +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+
+# needs revisit
+```
