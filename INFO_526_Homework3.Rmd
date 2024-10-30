@@ -4,7 +4,10 @@ author: "Sumel Rattan"
 date: "`r Sys.Date()`"
 output: html_document
 ---
+
 ```{r}
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+
 library(dplyr)
 
 raw_data <- read.csv("D:\\UA\\Study Materials & Notes\\Data Visualization\\Homeworks\\Homework3\\HW3_data\\HW3_data\\income.csv")
@@ -32,57 +35,57 @@ library(jpeg)
 library(grid)
 
 # Clean and reshape the data
-data <- data.frame(
-  Class = c("$100-200", "$200-300", "$300-400", "$400-500", 
-            "$500-750", "$750-1000", "$1000 AND OVER"),
-  Average_Income = c(139.10, 249.45, 335.66, 433.82, 547.00, 880.00, 1125.00),
-  Rent = c(19, 22, 23, 18, 13, 0, 0),
-  Food = c(43, 47, 43, 37, 31, 37, 29),
-  Clothes = c(28, 23, 18, 15, 17, 19, 16),
-  Tax = c(0.9, 4.0, 11.5, 5.5, 5.0, 8.0, 4.5),
-  Other = c(9.9, 4.0, 11.5, 24.5, 34.0, 36.0, 50.5)
-)
+data <- read.csv("D:\\UA\\Study Materials & Notes\\Data Visualization\\Homeworks\\Homework3\\HW3_data\\HW3_data\\income.csv")
 
-# Create the plot
-ggplot(data, aes(y = reorder(Class, Average_Income))) +
-  # Add background image
+head(data)
+
+```
+
+
+```{r}
+
+# Calculate percentages for each expense category orderwise
+data_long <- data %>%
+  pivot_longer(cols = Rent:Other, names_to = "Expense", values_to = "Amount") %>%
+  group_by(Class, Average_Income) %>%
+  mutate(Percent = Amount / sum(Amount) * 100) %>%
+  ungroup() %>%
+  mutate(
+    Expense = factor(Expense, levels = c("Rent", "Food", "Clothes", "Tax", "Other")),  # Order for the stack
+    Class = factor(Class, levels = rev(unique(Class)))  # Reverse Class order for y-axis
+  )
+
+# Plot with specified order of Class and Expense
+ggplot(data_long, aes(y = Class, x = Percent, fill = Expense)) +
+  # background image
   annotation_custom(
     grid::rasterGrob(jpeg::readJPEG("D:\\UA\\Study Materials & Notes\\Data Visualization\\Homeworks\\Homework3\\DataVizH3\\images\\paper-3653357_1280.jpg"),
-                     width = unit(1, "npc"),
-                     height = unit(1, "npc")),
+                     width = unit(2,"npc"),
+                     height = unit(2,"npc")),
     -Inf, Inf, -Inf, Inf) +
-  # Add bars
-  geom_col(aes(x = Rent), fill = "black", position = "stack") +
-  geom_col(aes(x = Food), fill = "#9B8EBA", position = position_stack(vjust = 0)) +
-  geom_col(aes(x = Clothes), fill = "#E8A5A5", position = position_stack(vjust = 0)) +
-  geom_col(aes(x = Tax), fill = "#CCCCCC", position = position_stack(vjust = 0)) +
-  geom_col(aes(x = Other), fill = "white", position = position_stack(vjust = 0)) +
-  # Add percentage labels
-  geom_text(aes(x = Rent/2, label = paste0(Rent, "%")), 
-            color = "white", size = 3) +
-  geom_text(aes(x = Rent + Food/2, label = paste0(Food, "%")), 
-            color = "black", size = 3) +
-  geom_text(aes(x = Rent + Food + Clothes/2, label = paste0(Clothes, "%")), 
-            color = "black", size = 3) +
-  geom_text(aes(x = Rent + Food + Clothes + Tax/2, label = paste0(Tax, "%")), 
-            color = "black", size = 3) +
-  geom_text(aes(x = Rent + Food + Clothes + Tax + Other/2, label = paste0(Other, "%")), 
-            color = "black", size = 3) +
-  # Customize theme
-  theme_minimal() +
-  theme(
-    plot.background = element_rect(fill = "antiquewhite", color = NA),
-    panel.grid = element_blank(),
-    axis.text.y = element_text(size = 10, face = "bold"),
-    axis.title = element_blank(),
-    axis.text.x = element_blank()
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = sprintf("%.1f%%", Percent)),
+            position = position_stack(vjust = 0.5), size = 3, color = "white", show.legend = FALSE) +
+  # Displaying Actual Average
+  geom_text(aes(label = Average_Income, x = -5), hjust = 1, color = "black", size = 2.8) +
+  annotate("text", x = -5, y = Inf, label = "Average Income", hjust = 1, color = "black", size = 3, fontface = "bold") +
+  scale_fill_manual(
+    values = c("Rent" = "#000000", "Food" = "#9F76B4", "Clothes" = "#F2A3A3", "Tax" = "#BFBFBF", "Other" = "#D4C1A2"),
+    breaks = c("Rent", "Food", "Clothes", "Tax", "Other")
   ) +
-  # Set plot limits and expand
-  scale_x_continuous(expand = c(0, 0), limits = c(0, 100)) +
-  coord_cartesian(clip = "off")
+  scale_color_identity() +  # color identity scale to apply custom colors directly
+  theme_minimal() +
+  labs(
+    x = "Percentage of Total Expenses",
+    y = "Income Class",
+    title = "Expense Breakdown by Income Class (Percentage)"
+  ) +
+  theme(
+    axis.text.y = element_text(size = 10, face = "bold"),  # Bold y-axis labels for Class
+    legend.position = "bottom",  # Hide legend for custom labeling
+    plot.title = element_text(hjust = 0.5)
+  )
 
-# Save the plot
-ggsave("atlanta_expenditure.png", width = 12, height = 8, dpi = 300)
 ```
 
 ### Question 2
@@ -125,6 +128,7 @@ Now we will relabel the survey response values.
 
 ```{r}
 library(dplyr)
+library(tidyr)
 
 cleaned_survey <- cleaned_survey %>%
   mutate(
@@ -137,7 +141,8 @@ cleaned_survey <- cleaned_survey %>%
     exp_age_bin = recode(exp_age_bin, '0' = "<20", '20' = "21-25", '25' = "26-30", '30' = ">30")
   )
 
-cleaned_survey <- cleaned_survey %>% drop_na()
+cleaned_survey <- cleaned_survey %>% 
+  drop_na()
 
 head(cleaned_survey)
 
@@ -164,7 +169,7 @@ print(covid_survey_longer)
 Grouping the data by explanatory, explanatory_value, and response.
 
 ```{r}
-# Group the data and calculate the summary statistics
+# Grouping the data and calculate the summary statistics
 covid_survey_summary_stats_by_group <- covid_survey_longer %>%
   group_by(explanatory, explanatory_value, response) %>%
   summarize(
@@ -180,7 +185,7 @@ covid_survey_summary_stats_by_group
 Grouping the data again, by response, in order to calculate same summary statistics for each response variable
 
 ```{r}
-# Group the data by response only and calculate summary statistics
+# Grouping the data by response only and calculate summary statistics
 covid_survey_summary_stats_all <- covid_survey_longer %>%
   group_by(response) %>%
   summarize(
@@ -190,21 +195,21 @@ covid_survey_summary_stats_all <- covid_survey_longer %>%
   ) %>%
   ungroup()
 
-# Print the resulting data frame
+# Printing the resulting data frame
 covid_survey_summary_stats_all
 
 ```
 Binding the two data frames now: 
 
 ```{r}
-# Combine the two summary statistics data frames by row
+# Combining the two summary statistics data frames by row
 covid_survey_summary_stats <- bind_rows(covid_survey_summary_stats_all, covid_survey_summary_stats_by_group)
 
 covid_survey_summary_stats <- covid_survey_summary_stats %>%
   mutate(explanatory = replace_na(explanatory, "ALL"),
          explanatory_value = replace_na(explanatory_value, ""))
 
-# Print the resulting data frame
+# Printing the resulting data frame
 covid_survey_summary_stats
 
 ```
@@ -215,7 +220,7 @@ library(ggplot2)
 library(dplyr)
 library(forcats)
 
-# Create a labeled data frame for custom labeling
+# Created a labeled data frame for custom labeling
 label_data <- list(
   response = c(
     resp_safety = "Based on my understanding, I believe the vaccine is safe",
@@ -235,13 +240,15 @@ label_data <- list(
     exp_flu_vax = "Had flu\nvaccine this\nyear"
   )
 )
-
-# Assuming your data frame has these columns: explanatory, explanatory_value, response, mean, low, high
-# Modify the plot
+# Plotting the plot
 ggplot(covid_survey_summary_stats, aes(x = mean, y = fct_rev(explanatory_value))) +
   geom_point(size = 2) +
   geom_errorbar(aes(xmin = low, xmax = high), width = 0.2) +
-  facet_grid(explanatory ~ response) +
+  facet_grid(explanatory ~ response,
+             labeller = labeller(
+               response = label_data$response,
+               explanatory = label_data$explanatory
+             )) +
   scale_x_continuous(
     limits = c(1, 5),
     breaks = seq(1, 5, 1)
@@ -269,14 +276,16 @@ ggplot(covid_survey_summary_stats, aes(x = mean, y = fct_rev(explanatory_value))
 
 ```{r}
 
-# Assuming we have already loaded libraries and defined label_data from previous code
-
 # Since we're using the summary statistics directly, we'll just plot using the existing data
 # but change the interpretation of 'low' and 'high' to represent quartiles instead of percentiles
 ggplot(covid_survey_summary_stats, aes(x = mean, y = fct_rev(explanatory_value))) +
   geom_point(size = 2) +
   geom_errorbar(aes(xmin = low, xmax = high), width = 0.2) +  # Using existing low/high columns
-  facet_grid(explanatory ~ response) +
+  facet_grid(explanatory ~ response,
+             labeller = labeller(
+               response = label_data$response,
+               explanatory = label_data$explanatory
+             )) +
   scale_x_continuous(
     limits = c(1, 5),
     breaks = seq(1, 5, 1)
@@ -383,6 +392,9 @@ hundred_percent_chart <- ggplot(covid_survey_summary_stats,
 diverging_chart / hundred_percent_chart +
   plot_layout(guides = "collect") &
   theme(legend.position = "bottom")
+
+install.packages("tidyverse")
+library(tidyverse)
 
 # needs revisit
 ```
